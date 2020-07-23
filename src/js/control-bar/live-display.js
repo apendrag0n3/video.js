@@ -1,28 +1,80 @@
 /**
- * Displays the live indicator
- * TODO - Future make it click to snap to live
- * @param {vjs.Player|Object} player
- * @param {Object=} options
- * @constructor
+ * @file live-display.js
  */
-vjs.LiveDisplay = vjs.Component.extend({
-  init: function(player, options){
-    vjs.Component.call(this, player, options);
+import Component from '../component';
+import * as Dom from '../utils/dom.js';
+
+// TODO - Future make it click to snap to live
+
+/**
+ * Displays the live indicator when duration is Infinity.
+ *
+ * @extends Component
+ */
+class LiveDisplay extends Component {
+
+  /**
+   * Creates an instance of this class.
+   *
+   * @param {Player} player
+   *        The `Player` that this class should be attached to.
+   *
+   * @param {Object} [options]
+   *        The key/value store of player options.
+   */
+  constructor(player, options) {
+    super(player, options);
+
+    this.updateShowing();
+    this.on(this.player(), 'durationchange', this.updateShowing);
   }
-});
 
-vjs.LiveDisplay.prototype.createEl = function(){
-  var el = vjs.Component.prototype.createEl.call(this, 'div', {
-    className: 'vjs-live-controls vjs-control'
-  });
+  /**
+   * Create the `Component`'s DOM element
+   *
+   * @return {Element}
+   *         The element that was created.
+   */
+  createEl() {
+    const el = super.createEl('div', {
+      className: 'vjs-live-control vjs-control'
+    });
 
-  this.contentEl_ = vjs.createEl('div', {
-    className: 'vjs-live-display',
-    innerHTML: '<span class="vjs-control-text">Stream Type </span>LIVE',
-    'aria-live': 'off'
-  });
+    this.contentEl_ = Dom.createEl('div', {
+      className: 'vjs-live-display',
+      innerHTML: `<span class="vjs-control-text">${this.localize('Stream Type')}\u00a0</span>${this.localize('LIVE')}`
+    }, {
+      'aria-live': 'off'
+    });
 
-  el.appendChild(this.contentEl_);
+    el.appendChild(this.contentEl_);
+    return el;
+  }
 
-  return el;
-};
+  dispose() {
+    this.contentEl_ = null;
+
+    super.dispose();
+  }
+
+  /**
+   * Check the duration to see if the LiveDisplay should be showing or not. Then show/hide
+   * it accordingly
+   *
+   * @param {EventTarget~Event} [event]
+   *        The {@link Player#durationchange} event that caused this function to run.
+   *
+   * @listens Player#durationchange
+   */
+  updateShowing(event) {
+    if (this.player().duration() === Infinity) {
+      this.show();
+    } else {
+      this.hide();
+    }
+  }
+
+}
+
+Component.registerComponent('LiveDisplay', LiveDisplay);
+export default LiveDisplay;

@@ -1,6 +1,6 @@
 .DS_Store
-dist/*
 build/files/*
+build/temp/*
 docs/api/*
 dev.html
 projects
@@ -8,15 +8,13 @@ projects
 test/*.map
 .bunyipconfig.js
 .s3config.json
+.eslintcache
 
 node_modules
-npm-debug.log
+npm-debug.log*
 
 sandbox/*
 !sandbox/*.example
-
-# ignore any Karma conf.js files in the test/ directory
-test/*.conf.js
 
 *.swp
 *.swo
@@ -25,3 +23,18 @@ test/*.conf.js
 
 *results.xml
 *.log
+
+test/dist/*
+.coveralls.yml
+.sass-cache
+
+dist/*
+es5/*
+
+.idea/
+
+core.js
+core.es.js
+
+# Ignore Chinese clones for now.
+lang/zh-Han*.json

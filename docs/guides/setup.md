@@ -1,102 +1,237 @@
-Setup
-=====
+# Video.js Setup
 
-Video.js is pretty easy to set up. It can take a matter of seconds to get the player up and working on your web page.
+## Table of Contents
 
-Step 1: Include the Video.js Javascript and CSS files in the head of your page.
-------------------------------------------------------------------------------
+* [Getting Video.js](#getting-videojs)
+* [Creating a Player](#creating-a-player)
+  * [Automatic Setup](#automatic-setup)
+  * [Manual Setup](#manual-setup)
+  * [Getting References to Players](#getting-references-to-players)
+    * [Using videojs](#using-videojs)
+    * [Using videojs.getPlayer()](#using-videojsgetplayer)
+    * [Using videojs.getPlayers() or videojs.players](#using-videojsgetplayers-or-videojsplayers)
+* [Options](#options)
+  * [Global Defaults](#global-defaults)
+  * [A Note on &lt;video> Tag Attributes](#a-note-on-video-tag-attributes)
+* [Player Readiness](#player-readiness)
+* [Advanced Player Workflows](#advanced-player-workflows)
 
-You can download the Video.js source and host it on your own servers, or use the free CDN hosted version. It's often recommended now to put JavaScript before the end body tag (&lt;/body>) instead of the head (&lt;head>), but Video.js includes an 'HTML5 Shiv', which needs to be in the head for older IE versions to respect the video tag as a valid element.
+## Getting Video.js
 
-> NOTE: If you're already using an HTML5 shiv like [Modernizr](http://modernizr.com/) you can include the Video.js JavaScript anywhere, however make sure your version of Modernizr includes the shiv for video.
+Video.js is officially available via CDN and npm.
 
-> If you're not using something like Modernizr but still want to include Video.JS before the closing body tag, you can add your own shiv. Include this in the head of your document:
+Video.js works out of the box with not only HTML `<script>` and `<link>` tags, but also all major bundlers/packagers/builders, such as Browserify, Node, WebPack, etc.
 
-> ```html
-<script type="text/javascript">
-  document.createElement('video');document.createElement('audio');document.createElement('track');
-</script>
-```
+Please refer to the [Getting Started][getting-started] document for details.
 
-### CDN Version ###
-```html
-<link href="//vjs.zencdn.net/4.5/video-js.css" rel="stylesheet">
-<script src="//vjs.zencdn.net/4.5/video.js"></script>
-```
+## Creating a Player
 
-### Self Hosted. ###
-With the self hosted option you'll also want to update the location of the video-js.swf file.
-```html
-<link href="//example.com/path/to/video-js.css" rel="stylesheet">
-<script src="//example.com/path/to/video.js"></script>
-<script>
-  videojs.options.flash.swf = "http://example.com/path/to/video-js.swf"
-</script>
-```
+> **Note:** Video.js works with `<video>` _and_ `<audio>` elements, but for simplicity we'll refer only to `<video>` elements going forward.
 
+Once you have Video.js [loaded on your page][getting-started], you're ready to create a player!
 
-Step 2: Add an HTML5 video tag to your page.
---------------------------------------------
-With Video.js you just use an HTML5 video tag to embed a video. Video.js will then read the tag and make it work in all browsers, not just ones that support HTML5 video. Beyond the basic markup, Video.js needs a few extra pieces.
+The core strength of Video.js is that it decorates a [standard `<video>` element][w3c-video] and emulates its associated [events and APIs][w3c-media-events], while providing a customizable DOM-based UI.
 
-  1. The 'data-setup' Attribute tells Video.js to automatically set up the video when the page is ready, and read any options (in JSON format) from the attribute (see [options](options.md)). There are other methods for initializing the player, but this is the easiest.
-
-  2. The 'id' Attribute: Should be used and unique for every video on the same page.
-
-  3. The 'class' attribute contains two classes:
-    - `video-js` applies styles that are required for Video.js functionality, like fullscreen and subtitles.
-    - `vjs-default-skin` applies the default skin to the HTML controls, and can be removed or overridden to create your own controls design.
-
-Otherwise include/exclude attributes, settings, sources, and tracks exactly as you would for HTML5 video.
+Video.js supports all attributes of the `<video>` element (such as `controls`, `preload`, etc), but it also supports [its own options](#options). There are two ways to create a Video.js player and pass it options, but they both start with a standard `<video>` element with the attribute `class="video-js"`:
 
 ```html
-<video id="example_video_1" class="video-js vjs-default-skin"
-  controls preload="auto" width="640" height="264"
-  poster="http://video-js.zencoder.com/oceans-clip.png"
-  data-setup='{"example_option":true}'>
- <source src="http://video-js.zencoder.com/oceans-clip.mp4" type='video/mp4' />
- <source src="http://video-js.zencoder.com/oceans-clip.webm" type='video/webm' />
- <source src="http://video-js.zencoder.com/oceans-clip.ogv" type='video/ogg' />
+<video class="video-js">
+  <source src="//vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+  <source src="//vjs.zencdn.net/v/oceans.webm" type="video/webm">
 </video>
 ```
 
-By default, the big play button is located in the upper left hand corner so it doesn't cover up the interesting parts of the poster. If you'd prefer to center the big play button, you can add an additional `vjs-big-play-centered` class to your video element. For example:
+You can use a `<video-js>` element instead of `<video>`. Using a `<video>` element is undesirable in some circumstances, as the browser may show unstyled controls or try to load a source in the moments before the player initialises, which does not happen with the `<video-js>` custom element. 
 
 ```html
-<video id="example_video_1" class="video-js vjs-default-skin vjs-big-play-centered"
-  controls preload="auto" width="640" height="264"
-  poster="http://video-js.zencoder.com/oceans-clip.png"
-  data-setup='{"example_option":true}'>
-  ...
+<video-js>
+  <source src="//vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+  <source src="//vjs.zencdn.net/v/oceans.webm" type="video/webm">
+</video-js>
+```
+
+For a high-level overview of all the various embed options, check out the [embeds page](/docs/guides/embeds.md), then follow the rest of this page.
+
+### Automatic Setup
+
+By default, when your web page finishes loading, Video.js will scan for media elements that have the `data-setup` attribute. The `data-setup` attribute is used to pass options to Video.js. A minimal example looks like this:
+
+```html
+<video class="video-js" data-setup='{}'>
+  <source src="//vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+  <source src="//vjs.zencdn.net/v/oceans.webm" type="video/webm">
 </video>
 ```
 
-Alternative Setup for Dynamically Loaded HTML
----------------------------------------------
-If your web page or application loads the video tag dynamically (ajax, appendChild, etc.), so that it may not exist when the page loads, you'll want to manually set up the player instead of relying on the data-setup attribute. To do this, first remove the data-setup attribute from the tag so there's no confusion around when the player is initialized. Next, run the following javascript some time after the Video.js javascript library has loaded, and after the video tag has been loaded into the DOM.
-```js
-videojs("example_video_1", {}, function(){
-  // Player (this) is initialized and ready.
-});
-```
+> **Note:** You _must_ use single-quotes with `data-setup` as it is expected to contain JSON.
 
-The first argument in the `videojs` function is the ID of your video tag. Replace it with your own.
+### Manual Setup
 
-The second argument is an options object. It allows you to set additional options like you can with the data-setup attribute.
+On the modern web, a `<video>` element often does not exist when the page finishes loading. In these cases, automatic setup is not possible, but manual setup is available via [the `videojs` function][videojs].
 
-The third argument is a 'ready' callback. Once Video.js has initialized it will call this function.
+One way to call this function is by providing it a string matching a `<video>` element's `id` attribute:
 
-Instead of using an element ID, you can also pass a reference to the element itself.
-
-```js
-videojs(document.getElementById('example_video_1'), {}, function() {
-  // This is functionally the same as the previous example.
-});
+```html
+<video id="my-player" class="video-js">
+  <source src="//vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+  <source src="//vjs.zencdn.net/v/oceans.webm" type="video/webm">
+</video>
 ```
 
 ```js
-videojs(document.getElementsByClassName('awesome_video_class')[0], {}, function() {
-  // You can grab an element by class if you'd like, just make sure
-  // if it's an array that you pick one (here we chose the first).
+videojs('my-player');
+```
+
+However, using an `id` attribute isn't always practical; so, the `videojs` function accepts a DOM element instead:
+
+```html
+<video class="video-js">
+  <source src="//vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+  <source src="//vjs.zencdn.net/v/oceans.webm" type="video/webm">
+</video>
+```
+
+```js
+videojs(document.querySelector('.video-js'));
+```
+
+### Getting References to Players
+
+Once players are created, Video.js keeps track of them internally. There are a few ways to get references to pre-existing players.
+
+#### Using `videojs`
+
+Calling `videojs()` with the ID of element of an already-existing player will return that player and will not create another one.
+
+If there is no player matching the argument, it will attempt to create one.
+
+#### Using `videojs.getPlayer()`
+
+Sometimes, you want to get a reference to a player without the potential side effects of calling `videojs()`. This can be acheived by calling `videojs.getPlayer()` with either a string matching the element's ID or the element itself.
+
+#### Using `videojs.getPlayers()` or `videojs.players`
+
+The `videojs.players` property exposes all known players. The method, `videojs.getPlayers()` simply returns the same object.
+
+Players are stored on this object with keys matching their IDs.
+
+> **Note:** A player created from an element without an ID will be assigned an automatically-generated ID.
+
+## Options
+
+> **Note:** This guide only covers how to pass options during player setup. For a complete reference on _all_ available options, see the [options guide](/docs/guides/options.md).
+
+There are three ways to pass options to Video.js. Because Video.js decorates an HTML5 `<video>` element, many of the options available are also available as [standard `<video>` tag attributes][video-attrs]:
+
+```html
+<video controls autoplay preload="auto" ...>
+```
+
+Alternatively, you can use the `data-setup` attribute to pass options as [JSON][json]. This is also how you would set options that aren't standard to the `<video>` element:
+
+```html
+<video data-setup='{"controls": true, "autoplay": false, "preload": "auto"}'...>
+```
+
+> **Note:** You _must_ use single-quotes around the value of `data-setup` as it contains a JSON string which must use double quotes.
+
+Finally, if you're not using the `data-setup` attribute to trigger the player setup, you can pass in an object of player options as the second argument to the `videojs` function:
+
+```js
+videojs('my-player', {
+  controls: true,
+  autoplay: false,
+  preload: 'auto'
 });
 ```
+
+> **Note:** Do not use both `data-setup` and an options object.
+
+### Global Defaults
+
+Default options for all players can be found at `videojs.options` and can be changed directly. For example, to set `{autoplay: true}` for all future players:
+
+```js
+videojs.options.autoplay = true;
+```
+
+### A Note on `<video>` Tag Attributes
+
+Many attributes are so-called [boolean attributes][boolean-attrs]. This means they are either on or off. In these cases, the attribute _should have no value_ (or should have its name as its value) - its presence implies a true value and its absence implies a false value.
+
+_These are incorrect:_
+
+```html
+<video controls="true" ...>
+<video loop="true" ...>
+<video controls="false" ...>
+```
+
+> **Note:** The example with `controls="false"` can be a point of confusion for new developers - it will actually turn controls _on_!
+
+These are correct:
+
+```html
+<video controls ...>
+<video loop="loop" ...>
+<video ...>
+```
+
+## Player Readiness
+
+Because Video.js techs have the potential to be loaded asynchronously, it isn't always safe to interact with a player immediately upon setup. For this reason, Video.js players have a concept of "readiness" which will be familiar to anyone who has used jQuery before.
+
+Essentially, any number of ready callbacks can be defined for a Video.js player. There are three ways to pass these callbacks. In each example, we'll add an identical class to the player:
+
+Pass a callback to the `videojs()` function as a third argument:
+
+```js
+// Passing `null` for the options argument.
+videojs('my-player', null, function() {
+  this.addClass('my-example');
+});
+```
+
+Pass a callback to a player's `ready()` method:
+
+```js
+var player = videojs('my-player');
+
+player.ready(function() {
+  this.addClass('my-example');
+});
+```
+
+Listen for the player's `"ready"` event:
+
+```js
+var player = videojs('my-player');
+
+player.on('ready', function() {
+  this.addClass('my-example');
+});
+```
+
+In each case, the callback is called asynchronously.
+
+An important distinction between the above methods is that adding an listener for `ready` with `on()` _must_ be done before the player is ready. With `player.ready()`, the function is called immediately if the player is already ready.
+
+## Advanced Player Workflows
+
+For a discussion of more advanced player workflows, see the [player workflows guide][player-workflows].
+
+[player-workflows]: /docs/guides/player-workflows.md
+
+[boolean-attrs]: https://www.w3.org/TR/2011/WD-html5-20110525/common-microsyntaxes.html#boolean-attributes
+
+[getting-started]: https://videojs.com/getting-started/
+
+[json]: https://json.org/example.html
+
+[video-attrs]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video#Attributes
+
+[videojs]: https://docs.videojs.com/module-videojs.html
+
+[w3c-media-events]: https://www.w3.org/2010/05/video/mediaevents.html
+
+[w3c-video]: https://www.w3.org/TR/html5/embedded-content-0.html#the-video-element
